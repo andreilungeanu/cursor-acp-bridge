@@ -125,7 +125,11 @@ async function buildContextBlocks(contextFiles, workspace, client, warnings) {
         warnings.push(`contextFile ${entry} skipped: ${Math.round(stat.size / 1024)}KB exceeds the ${MAX_IMAGE_BYTES / 1024 / 1024}MB image limit`);
         continue;
       }
-      blocks.push({ type: "image", mimeType, data: (await readFile(canonical)).toString("base64") });
+      try {
+        blocks.push({ type: "image", mimeType, data: (await readFile(canonical)).toString("base64") });
+      } catch (err) {
+        warnings.push(`contextFile ${entry} skipped: could not read image (${err?.code || "read failed"})`);
+      }
       continue;
     }
     blocks.push({ type: "resource_link", uri: pathToFileURL(canonical).href, name: path.basename(canonical) });

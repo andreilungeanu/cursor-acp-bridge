@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 import process from "node:process";
 import path from "node:path";
 import { EventEmitter } from "node:events";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { writeFileSync, unlinkSync } from "node:fs";
+import { chmodSync, writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { z } from "zod";
 import { AcpClient } from "../src/acp-client.js";
@@ -1439,6 +1439,54 @@ test("runDelegate sends an image contextFile inline when the agent accepts image
     assert.equal(out.protocolWarnings, undefined);
   } finally {
     try { unlinkSync(imgPath); } catch {}
+  }
+});
+
+test("runDelegate skips an unreadable image and continues with the remaining attachments", {
+  skip: process.platform !== "win32" && process.getuid?.() === 0 ? "root bypasses file permissions" : false,
+}, async () => {
+  const imgPath = path.join(tmpdir(), `delegate-img-unreadable-${process.pid}.png`);
+  writeFileSync(imgPath, TINY_PNG);
+  let locker;
+  let closed;
+  const track = {};
+  try {
+    if (process.platform === "win32") {
+      const script = fileURLToPath(new URL("./fixtures/lock-file.ps1", import.meta.url));
+      locker = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-File", script, imgPath], {
+        stdio: ["pipe", "pipe", "pipe"], windowsHide: true, timeout: 10000,
+      });
+      closed = new Promise((resolve) => locker.once("close", resolve));
+      await new Promise((resolve, reject) => {
+        let stdout = "", stderr = "";
+        locker.stdout.on("data", (chunk) => {
+          stdout += chunk;
+          if (stdout.includes("locked")) resolve();
+        });
+        locker.stderr.on("data", (chunk) => { stderr += chunk; });
+        locker.once("error", reject);
+        locker.once("exit", (code) => reject(new Error(`file locker exited ${code}: ${stderr}`)));
+      });
+    } else {
+      chmodSync(imgPath, 0);
+    }
+    const out = await runDelegate({
+      spec: "look at this", workspace: process.cwd(), contextFiles: [imgPath, "package.json"],
+      clientFactory: imageCapableFactory(track), hardCapMs: 5000,
+    });
+    assert.equal(out.result, "done");
+    assert.deepEqual(track.blocks.map((block) => block.type), ["text", "resource_link"]);
+    assert.equal(track.blocks[1].name, "package.json");
+    assert.equal(out.protocolWarnings.length, 1);
+    assert.match(out.protocolWarnings[0], /contextFile .* skipped: could not read image/);
+  } finally {
+    if (locker) {
+      locker.stdin.end("\n");
+      await closed;
+    } else {
+      chmodSync(imgPath, 0o600);
+    }
+    unlinkSync(imgPath);
   }
 });
 
