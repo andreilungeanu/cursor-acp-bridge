@@ -41,6 +41,7 @@ export function createRequestRouter({ respond, respondError, onCreatePlan, onTod
       if (method === "cursor/update_todos") {
         onTodos?.({ todos: params?.todos, merge: params?.merge, toolCallId: params?.toolCallId });
         log({ method, params });
+        if (id == null) return;
         // The documented response is {outcome:{outcome:"accepted", todos}}; the bare {} we
         // have always sent is accepted by cursor-agent, so it stays until that changes.
         return respond(id, {});
@@ -53,7 +54,7 @@ export function createRequestRouter({ respond, respondError, onCreatePlan, onTod
     } catch (err) {
       // -32603, not -32000: ACP assigns -32000 to auth_required, and a bug on this side
       // reported as "authenticate" sends the agent down a recovery path that cannot work.
-      return respondError(id, -32603, `Router error: ${err?.message || err}`);
+      if (id != null) return respondError(id, -32603, `Router error: ${err?.message || err}`);
     }
   };
 }

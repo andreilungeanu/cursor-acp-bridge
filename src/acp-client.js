@@ -97,7 +97,12 @@ export class AcpClient extends EventEmitter {
     this.child.once("close", emitExit);
     this.router = null;
     this.peer = new JsonRpcPeer(this.child.stdout, this.child.stdin, {
-      onNotification: (method, params) => { if (method === "session/update") this.emit("update", params); },
+      onNotification: (method, params) => {
+        if (method === "session/update") this.emit("update", params);
+        else if (method === "cursor/update_todos") {
+          Promise.resolve(this.router?.(undefined, method, params)).catch(() => {});
+        }
+      },
       // The router is async and its result discarded, so a throw from its own catch would reject
       // unobserved and exit the process. Promise.resolve covers a sync router in tests.
       onRequest: (id, method, params) => {

@@ -88,6 +88,14 @@ test("update_todos still acks when no onTodos is wired", async () => {
   assert.deepEqual(responses[0], { id: 3, result: {} });
 });
 
+test("todo notifications never receive a reply, including when their handler fails", async () => {
+  for (const onTodos of [undefined, () => { throw new Error("bad todo"); }]) {
+    const { router, responses } = harness({ onTodos });
+    await router(undefined, "cursor/update_todos", { todos: [], merge: false });
+    assert.deepEqual(responses, []);
+  }
+});
+
 // Pins what the router sends for ACK_METHODS, not what cursor-agent accepts: FIXLIST L5 records
 // that generate_image's real expected result has never been probed against a live agent. Without
 // this, both methods would fall through to -32601 and no test would notice.

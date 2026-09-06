@@ -1816,6 +1816,27 @@ test("runDelegate rejects immediately when signal is already aborted", async () 
   assert.equal(factoryCalls, 0);
 });
 
+test("runDelegate merges todo notifications and requests without acknowledging notifications", async () => {
+  const out = await runDelegate({
+    spec: "task", workspace: process.cwd(), hardCapMs: 5000,
+    clientFactory: (opts) => new AcpClient({
+      ...opts,
+      spawnSpec: {
+        command: process.execPath,
+        args: [fileURLToPath(new URL("./fixtures/todo-notification-acp.js", import.meta.url))],
+        options: { shell: false },
+      },
+    }),
+  });
+  assert.equal(out.result, "done");
+  assert.deepEqual(out.todos, [
+    { id: "1", content: "inspect", status: "completed" },
+    { id: "2", content: "implement", status: "pending" },
+  ]);
+  assert.deepEqual(out.todoProgress, { total: 2, completed: 1, inProgress: 0, pending: 1, cancelled: 0 });
+  assert.equal(out.protocolWarnings, undefined);
+});
+
 // Frames replayed from a raw multi-step todo-stream capture (2026-07-22): one merge:false
 // full list, then merge:true deltas carrying only the changed entries.
 function todoFactory(frames) {
