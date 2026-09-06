@@ -6,6 +6,34 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-06
+
+### Fixed
+
+- JSON that is not an object is ignored on the ACP stream. `null` threw in the frame
+  reader — an uncaught exception that took down the server — and arrays or primitives
+  counted as activity, holding the idle guard open the way a launcher banner used to.
+- Malformed tool `content` blocks are dropped and reported once in `protocolWarnings`.
+  A null block, a block with no string `type`, or a `diff` whose `path` is missing or
+  not a string threw in the update handler or recorded a non-path in `touchedFiles`.
+- `cursor/update_todos` sent as a JSON-RPC notification is merged and not answered. A
+  reply to a notification is invalid JSON-RPC and aborted the turn.
+- An image `contextFile` that cannot be read is skipped with a warning. A permission
+  error or a locked file used to fail the whole delegation after the other attachments
+  were already accepted.
+- The Codex plugin `interface` drops `supportURL`. Codex's validator rejects unknown
+  keys, so a listing that kept that field would not validate.
+
+### Changed
+
+- README usage copy names the Cursor Models pool and links Cursor's usage-limits help
+  instead of calling the allowance generous enough that most people never hit it.
+
+### Internal
+
+- The production `npm audit` CI step retries three times with a five-minute timeout, so
+  a registry blip no longer fails the whole test workflow.
+
 ## [2.2.1] - 2026-09-04
 
 ### Changed
