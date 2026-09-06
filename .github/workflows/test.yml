@@ -54,7 +54,25 @@ jobs:
         run: >
           node scripts/run-tests.mjs --experimental-test-coverage --test-coverage-include='src/**'
           --test-coverage-lines=95 --test-coverage-branches=85 --test-coverage-functions=88
-      - run: npm audit --omit=dev --audit-level=high
+      - name: Audit production dependencies
+        timeout-minutes: 5
+        env:
+          # Bound each request; retry the whole audit if the registry is unavailable.
+          NPM_CONFIG_FETCH_RETRIES: 0
+          NPM_CONFIG_FETCH_TIMEOUT: 30000
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if npm audit --omit=dev --audit-level=high; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::npm audit failed (attempt $attempt/3); retrying."
+              sleep "$((attempt * 10))"
+            fi
+          done
+          echo "::error::npm audit failed after 3 attempts; a passing audit is required."
+          exit 1
 
   # The lockfile resolves a newer SDK; make sure the declared minimum keeps working.
   min-deps:
