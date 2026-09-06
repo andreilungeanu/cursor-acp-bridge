@@ -434,7 +434,13 @@ export async function runDelegate({
       // is an uncaught exception — the whole server, not this one turn — and it also stops the
       // reply on the next line from being read, so the turn hangs to its cap.
       for (const c of Array.isArray(up.content) ? up.content : []) {
-        if (c.type === "diff" && c.path) {
+        if (!c || typeof c !== "object" || Array.isArray(c) || typeof c.type !== "string"
+          || (c.type === "diff" && (typeof c.path !== "string" || !c.path))) {
+          const warning = "malformed tool content dropped: expected content blocks with string diff paths";
+          if (!frameWarnings.includes(warning)) frameWarnings.push(warning);
+          continue;
+        }
+        if (c.type === "diff") {
           state.touched.add(c.path);
           try { onProgress?.("editing " + c.path); } catch {}
         }

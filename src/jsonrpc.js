@@ -88,6 +88,7 @@ export class JsonRpcPeer {
     if (!line.trim()) return;
     let msg;
     try { msg = JSON.parse(line); } catch { return; }
+    if (msg === null || typeof msg !== "object" || Array.isArray(msg)) return;
     // Only a parsed frame counts. A blank line, a launcher banner or anything else the agent
     // prints is not the protocol advancing, and treating it as such is what let a chatty
     // launcher hold the idle guard open and made "Last ACP frame Ns ago" report a stderr byte.

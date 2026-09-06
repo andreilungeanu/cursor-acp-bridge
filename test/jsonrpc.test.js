@@ -324,6 +324,9 @@ test("onActivity fires for a parsed frame and not for anything else on the wire"
   input.write("Cursor CLI 2026.08.11 starting\n");
   input.write("\n");
   input.write("{ not json\n");
+  for (const value of [null, [], 42, true, "launcher banner"]) {
+    input.write(JSON.stringify(value) + "\n");
+  }
   await new Promise((r) => setImmediate(r));
   assert.equal(count, 0, "noise on stdout is not the protocol advancing");
 

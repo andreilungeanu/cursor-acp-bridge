@@ -23,13 +23,19 @@ rl.on("line", (line) => {
   }
   if (m.method === "session/prompt") {
     const sid = m.params?.sessionId || "sess-bad";
+    if (process.argv[2] === "non-object") {
+      for (const value of [null, [], 42, true, "launcher banner"]) out(value);
+    }
     out({ jsonrpc: "2.0", method: "session/update", params: { sessionId: sid, update: {
       sessionUpdate: "tool_call", toolCallId: "t1", title: "Edit File", kind: "edit", status: "pending",
     } } });
     // The bad frame: an object, not an array of content blocks.
     out({ jsonrpc: "2.0", method: "session/update", params: { sessionId: sid, update: {
       sessionUpdate: "tool_call_update", toolCallId: "t1", status: "completed",
-      content: { type: "diff", path: "hello.txt" },
+      content: process.argv[2] === "blocks"
+        ? [null, false, 1, "bad", {}, { type: "diff", path: {} }, { type: "diff", path: "" },
+          { type: "diff", path: "valid.txt" }]
+        : { type: "diff", path: "hello.txt" },
     } } });
     out({ jsonrpc: "2.0", method: "session/update", params: { sessionId: sid, update: {
       sessionUpdate: "agent_message_chunk", content: { type: "text", text: "done" },

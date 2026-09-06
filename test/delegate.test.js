@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import process from "node:process";
 import path from "node:path";
 import { EventEmitter } from "node:events";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -75,6 +76,21 @@ function malformedContentFactory() {
       args: [fileURLToPath(new URL("./fixtures/malformed-content-acp.js", import.meta.url))],
       options: { shell: false },
     },
+  });
+}
+
+for (const scenario of ["non-object", "blocks"]) {
+  test(`malformed ACP ${scenario} cannot terminate the bridge process`, () => {
+    const runner = fileURLToPath(new URL("./fixtures/malformed-frame-runner.js", import.meta.url));
+    const child = spawnSync(process.execPath, [runner, scenario], { encoding: "utf8", timeout: 10000 });
+    assert.equal(child.status, 0, child.stderr || child.error?.message);
+    const out = strictOutput.parse(JSON.parse(child.stdout));
+    assert.equal(out.result, "done");
+    if (scenario === "blocks") {
+      assert.deepEqual(out.filesReportedByEditTools, ["valid.txt"]);
+      assert.equal(out.protocolWarnings.length, 1, "malformed blocks share one diagnostic");
+      assert.match(out.protocolWarnings[0], /tool content.*dropped/);
+    }
   });
 }
 
