@@ -37,6 +37,20 @@ test("Codex plugin manifest references real portable components", () => {
   assert.deepEqual(manifest.interface.capabilities, ["Read", "Write"]);
 });
 
+test("Codex interface metadata uses accepted manifest fields", () => {
+  // Codex's plugin validator rejects unknown interface keys. Keep this contract in npm test
+  // so CI catches it without depending on a maintainer's locally installed Python validator.
+  // https://developers.openai.com/plugins/build/plugins
+  const allowed = new Set([
+    "displayName", "shortDescription", "longDescription", "developerName", "category",
+    "capabilities", "websiteURL", "privacyPolicyURL", "termsOfServiceURL", "brandColor",
+    "composerIcon", "logo", "logoDark", "screenshots", "defaultPrompt", "default_prompt",
+  ]);
+  const unknown = Object.keys(read(".codex-plugin/plugin.json").interface)
+    .filter((key) => !allowed.has(key));
+  assert.deepEqual(unknown, [], "Codex rejects unsupported interface metadata");
+});
+
 test("marketplaces and Copilot plugin point at the intended package", () => {
   const codexMarketplace = read(".agents/plugins/marketplace.json");
   const codexEntry = codexMarketplace.plugins[0];

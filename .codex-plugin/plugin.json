@@ -28,7 +28,6 @@
     "websiteURL": "https://github.com/andreilungeanu/cursor-delegate-mcp",
     "privacyPolicyURL": "https://github.com/andreilungeanu/cursor-delegate-mcp/blob/main/PRIVACY.md",
     "termsOfServiceURL": "https://github.com/andreilungeanu/cursor-delegate-mcp/blob/main/TERMS.md",
-    "supportURL": "https://github.com/andreilungeanu/cursor-delegate-mcp/issues",
     "defaultPrompt": [
       "Delegate this implementation to Cursor and review the diff.",
       "Ask Cursor to draft a plan for this change.",
